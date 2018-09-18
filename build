@@ -1,0 +1,15 @@
+#!/bin/sh
+
+length=${#GOPATH}
+srcpath=${PWD:length}
+imagesrcpath="/go"${srcpath}
+
+echo $imagesrcpath
+image="golang:1.11-alpine"
+
+target="kubeconfig"
+targetimage="kubeconfig:latest"
+
+docker run --rm -v "${PWD}":"${imagesrcpath}" -w ${imagesrcpath} ${image} go build -v -o ${target}
+
+docker build --build-arg binname=${target} -t ${targetimage} .
