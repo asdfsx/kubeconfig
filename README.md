@@ -16,12 +16,14 @@ docker run --rm -v "${PWD}":"${imagesrcpath}" -w ${imagesrcpath} ${image} go bui
 docker build -t kubeconfig:latest .
 ```
 
-### 
-
 ### 直接运行
+```
 kubectl run --rm -i demo --image=asdfsx/kubeconfig --image-pull-policy=Always
+```
 
 ### 部署
+```
 kubectl create -f artifacts/init-namespace.yaml
 kubectl create -f artifacts/kubeconfig-deploy.yaml
 kubectl create -f artifacts/kubeconfig-ingress.yaml
+```
