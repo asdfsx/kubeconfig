@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"net/http"
+	"os"
 )
 
 var (
@@ -40,6 +42,8 @@ type Message struct {
 
 type kubeClient struct {
 	k8sclient kubernetes.Interface
+	cluster_server string
+	cluster_ca_data []byte
 }
 
 func (kc kubeClient) kubeconfig(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -59,7 +63,7 @@ func (kc kubeClient) kubeconfig(w http.ResponseWriter, r *http.Request, ps httpr
 		fmt.Fprintf(w, err.Error())
 		return
 	}
-	config := generateConfigMap2(serviceAccount.Name, secret.Data["token"])
+	config := generateConfigMap2(serviceAccount.Name, secret.Data["token"], kc.cluster_server, kc.cluster_ca_data)
 	result, err := json.Marshal(config)
 	if err != nil {
 		w.WriteHeader(500)
@@ -82,15 +86,22 @@ func main() {
 	var cfg *rest.Config
 	var err error
 
+	var cluster_server string
+	var cluster_ca_data []byte
+
 	if incluster {
 		cfg, err = rest.InClusterConfig()
+		cluster_server = os.Getenv("CLUSTER_SERVER")
+		tmp := os.Getenv("CLUSTER_CA_DATA")
+		cluster_ca_data, err = base64.StdEncoding.DecodeString(tmp)
+		if err != nil{
+			glog.Fatalf("Error decoding ca-data: %s", err.Error())
+		}
 	} else {
 		cfg, err = clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
+		cluster_server = cfg.Host
+		cluster_ca_data = cfg.CAData
 	}
-
-	//fmt.Printf("%s\n", cfg.Host)
-	//fmt.Printf("%s\n", cfg.CAData)
-	//fmt.Printf("%s\n", cfg.CertData)
 
 	if err != nil {
 		glog.Fatalf("Error building kubeconfig: %s", err.Error())
@@ -103,6 +114,8 @@ func main() {
 
 	kc := kubeClient{
 		clientset,
+		cluster_server,
+		cluster_ca_data,
 	}
 
 	router := httprouter.New()

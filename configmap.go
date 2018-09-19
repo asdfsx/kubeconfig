@@ -31,7 +31,7 @@ type Configmap struct {
 	} `json:"users,omitempty"`
 }
 
-func generateConfigMap2(name string, token []byte) (confMap *k8s_cli_api.Config) {
+func generateConfigMap2(name string, token []byte, server string, caData []byte) (confMap *k8s_cli_api.Config) {
 	confMap = &k8s_cli_api.Config{}
 	confMap.APIVersion = "v1"
 	confMap.Kind = "Config"
@@ -40,13 +40,20 @@ func generateConfigMap2(name string, token []byte) (confMap *k8s_cli_api.Config)
 		Name: name,
 		Context: k8s_cli_api.Context{
 			AuthInfo: name,
+			Cluster: name,
 		},
 	})
 	confMap.AuthInfos = append(confMap.AuthInfos, k8s_cli_api.NamedAuthInfo{
 		Name: name,
 		AuthInfo: k8s_cli_api.AuthInfo{
-			Username: name,
 			Token:    fmt.Sprintf("%s", token),
+		},
+	})
+	confMap.Clusters = append(confMap.Clusters, k8s_cli_api.NamedCluster{
+		Name: name,
+		Cluster: k8s_cli_api.Cluster{
+			Server: server,
+			CertificateAuthorityData: caData,
 		},
 	})
 	return

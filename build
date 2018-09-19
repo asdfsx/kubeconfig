@@ -10,6 +10,7 @@ image="golang:1.11-alpine"
 target="kubeconfig"
 targetimage="kubeconfig:latest"
 
-docker run --rm -v "${PWD}":"${imagesrcpath}" -w ${imagesrcpath} ${image} go build -v -o ${target}
+docker run --rm -v "${PWD}":"${imagesrcpath}" -w ${imagesrcpath} ${image} go build -o ${target}
 
-docker build --build-arg binname=${target} -t ${targetimage} .
+docker build -t ${targetimage} .
+

@@ -1,8 +1,5 @@
 FROM alpine
-ARG binname
-ENV binname=${binname:-kubeconfig}
 RUN apk --no-cache add ca-certificates
 WORKDIR /root/
-RUN echo $binname
-ADD ${binname} .
+ADD kubeconfig .
 CMD ["./kubeconfig", "-incluster=true"]
