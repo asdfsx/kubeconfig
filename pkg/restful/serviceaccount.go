@@ -38,7 +38,7 @@ func (sar ServiceAccountResource) WebService() *restful.WebService {
 		Doc("find all service account under specified namespace").
 		Param(ws.PathParameter("namespace", "identifier of the namespace").DataType("string").DefaultValue("default")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(nil). // on the response
+		Writes([]string{}). // on the response
 		Returns(200, "OK", nil).
 		Returns(404, "Not Found", nil))
 
@@ -48,17 +48,17 @@ func (sar ServiceAccountResource) WebService() *restful.WebService {
 		Param(ws.PathParameter("namespace", "identifier of the namespace").DataType("string").DefaultValue("default")).
 		Param(ws.PathParameter("serviceAccount", "identifier of the serviceAccount").DataType("string").DefaultValue("default")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(nil). // on the response
+		Writes(core_v1.ServiceAccount{}). // on the response
 		Returns(200, "OK", nil).
 		Returns(404, "Not Found", nil))
 
-	ws.Route(ws.PUT("/{namespace}/{serviceAccount}").To(sar.createServiceAccount).
+	ws.Route(ws.POST("/{namespace}/{serviceAccount}").To(sar.createServiceAccount).
 		// docs
 		Doc("create service account in specified namespace").
 		Param(ws.PathParameter("namespace", "identifier of the namespace").DataType("string").DefaultValue("default")).
 		Param(ws.PathParameter("serviceAccount", "identifier of the serviceAccount").DataType("string").DefaultValue("default")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(nil). // on the response
+		Writes(core_v1.ServiceAccount{}). // on the response
 		Returns(200, "OK", nil).
 		Returns(404, "Not Found", nil))
 
@@ -68,7 +68,7 @@ func (sar ServiceAccountResource) WebService() *restful.WebService {
 		Param(ws.PathParameter("namespace", "identifier of the namespace").DataType("string").DefaultValue("default")).
 		Param(ws.PathParameter("serviceAccount", "identifier of the serviceAccount").DataType("string").DefaultValue("default")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(nil). // on the response
+		Writes(""). // on the response
 		Returns(200, "OK", nil).
 		Returns(404, "Not Found", nil))
 

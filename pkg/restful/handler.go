@@ -15,7 +15,7 @@ func CreateHandler(k8sclient kubernetes.Interface, prefix string, cluster_ca_ser
 	nsr := createNameSpacesResource(k8sclient, prefix)
 	container.Add(nsr.WebService())
 
-	kcr := createKubeConfigResource(k8sclient, cluster_ca_server, cluster_ca_data)
+	kcr := createKubeConfigResource(k8sclient, cluster_ca_server, cluster_ca_data, prefix)
 	container.Add(kcr.WebService())
 
 	sar := createServiceAccountResource(k8sclient, prefix)
@@ -29,6 +29,14 @@ func CreateHandler(k8sclient kubernetes.Interface, prefix string, cluster_ca_ser
 
 	container.Handle("/apidocs/", http.StripPrefix("/apidocs/",
 		http.FileServer(http.Dir(swaggerUIDist))))
+	// Optionally, you may need to enable CORS for the UI to work.
+	cors := restful.CrossOriginResourceSharing{
+		AllowedHeaders: []string{"Content-Type", "Accept"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
+		CookiesAllowed: false,
+		Container:      container}
+	container.Filter(cors.Filter)
+
 	container.ServeMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "Welcome!\n")
 	})
@@ -37,6 +45,7 @@ func CreateHandler(k8sclient kubernetes.Interface, prefix string, cluster_ca_ser
 }
 
 func enrichSwaggerObject(swo *spec.Swagger) {
+	swo.Schemes = []string{"http"}
 	swo.Info = &spec.Info{
 		InfoProps: spec.InfoProps{
 			Title:       "KubeService",
@@ -53,6 +62,10 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 		},
 	}
 	swo.Tags = []spec.Tag{spec.Tag{TagProps: spec.TagProps{
-		Name:        "users",
+		Name:        "Kubeconfig",
 		Description: "Managing namespaces"}}}
+}
+
+type Result struct {
+	Status string `json:"status" description:"action result"`
 }

@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/emicklei/go-restful"
-	restfulspec "github.com/emicklei/go-restful-openapi"
+	"github.com/emicklei/go-restful-openapi"
 	core_v1 "k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -46,21 +46,27 @@ func (nsr NameSpacesResource) WebService() *restful.WebService {
 		Doc("get a namespace by name").
 		Param(ws.PathParameter("namespace", "identifier of the namespace").DataType("string").DefaultValue("default")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(nil). // on the response
+		Writes(core_v1.Namespace{}). // on the response
 		Returns(200, "OK", nil).
 		Returns(404, "Not Found", nil))
 
-	ws.Route(ws.PUT("/{namespace}").To(nsr.createNamespace).
+	ws.Route(ws.POST("/{namespace}").To(nsr.createNamespace).
 		// docs
 		Doc("create a namespace").
+		Param(ws.PathParameter("namespace", "identifier of the namespace").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(ws.PathParameter("namespace", "identifier of the namespace").DataType("string")))
+		Writes(core_v1.Namespace{}).
+		Returns(200, "OK", nil).
+		Returns(404, "Not Found", nil))
 
 	ws.Route(ws.DELETE("/{namespace}").To(nsr.removeNamespace).
 		// docs
 		Doc(fmt.Sprintf("delete a namespace which prefix is %s", nsr.selfDefineResourePrefix)).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Param(ws.PathParameter("namespace", "identifier of the namespace").DataType("string")))
+		Param(ws.PathParameter("namespace", "identifier of the namespace").DataType("string")).
+		Writes("").
+		Returns(200, "OK", nil).
+		Returns(404, "Not Found", nil))
 
 	return ws
 }
