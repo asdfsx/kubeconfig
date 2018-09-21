@@ -2,7 +2,7 @@
 https://github.com/kubernetes/client-go/tree/master/examples/in-cluster-client-configuration
 
 ### 编译
-```
+```bash
 // 启用 go module
 set GO111MODULE=on
 // 为了方便从镜像里编译程序，将所有依赖都加载到vendor目录
@@ -16,13 +16,18 @@ docker run --rm -v "${PWD}":"${imagesrcpath}" -w ${imagesrcpath} ${image} go bui
 docker build -t kubeconfig:latest .
 ```
 
-### 直接运行
-```
-kubectl run --rm -i demo --image=asdfsx/kubeconfig --image-pull-policy=Always
+### 使用makefile编译
+```bash
+$ make help
+  all                            build binary, then build and push image
+  build                          build for docker
+  clean                          Delete kubeconfig binary
+  push                           push image to docker registry
+  vendor                         add dependencies to vendor directory
 ```
 
 ### 部署
-```
+```bash
 kubectl create -f artifacts/init-namespace.yaml
 kubectl create -f artifacts/kubeconfig-deploy.yaml
 kubectl create -f artifacts/kubeconfig-ingress.yaml
