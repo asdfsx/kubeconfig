@@ -5,22 +5,22 @@ import (
 	"fmt"
 	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful-openapi"
-	core_v1 "k8s.io/api/core/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	coreV1 "k8s.io/api/core/v1"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"net/http"
 	"strings"
 )
 
 type ServiceAccountResource struct {
-	k8sclient               kubernetes.Interface
-	selfDefineResourePrefix string
+	k8sClient                kubernetes.Interface
+	selfDefineResourcePrefix string
 }
 
 func createServiceAccountResource(k8sclient kubernetes.Interface, prefix string) (resource *ServiceAccountResource) {
 	resource = &ServiceAccountResource{
-		k8sclient:               k8sclient,
-		selfDefineResourePrefix: prefix,
+		k8sClient:                k8sclient,
+		selfDefineResourcePrefix: prefix,
 	}
 	return
 }
@@ -48,29 +48,29 @@ func (sar ServiceAccountResource) WebService() *restful.WebService {
 		Param(ws.PathParameter("namespace", "identifier of the namespace").DataType("string").DefaultValue("default")).
 		Param(ws.PathParameter("serviceAccount", "identifier of the serviceAccount").DataType("string").DefaultValue("default")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(core_v1.ServiceAccount{}). // on the response
+		Writes(coreV1.ServiceAccount{}). // on the response
 		Returns(200, "OK", nil).
 		Returns(404, "Not Found", nil))
 
-	ws.Route(ws.POST("/{namespace}/{serviceAccount}").To(sar.createServiceAccount).
-		// docs
-		Doc("create service account in specified namespace").
-		Param(ws.PathParameter("namespace", "identifier of the namespace").DataType("string").DefaultValue("default")).
-		Param(ws.PathParameter("serviceAccount", "identifier of the serviceAccount").DataType("string").DefaultValue("default")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(core_v1.ServiceAccount{}). // on the response
-		Returns(200, "OK", nil).
-		Returns(404, "Not Found", nil))
-
-	ws.Route(ws.DELETE("/{namespace}/{serviceAccount}").To(sar.deleteServiceAccount).
-		// docs
-		Doc("create service account in specified namespace").
-		Param(ws.PathParameter("namespace", "identifier of the namespace").DataType("string").DefaultValue("default")).
-		Param(ws.PathParameter("serviceAccount", "identifier of the serviceAccount").DataType("string").DefaultValue("default")).
-		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(""). // on the response
-		Returns(200, "OK", nil).
-		Returns(404, "Not Found", nil))
+	//ws.Route(ws.POST("/{namespace}/{serviceAccount}").To(sar.createServiceAccount).
+	//	// docs
+	//	Doc("create service account in specified namespace").
+	//	Param(ws.PathParameter("namespace", "identifier of the namespace").DataType("string").DefaultValue("default")).
+	//	Param(ws.PathParameter("serviceAccount", "identifier of the serviceAccount").DataType("string").DefaultValue("default")).
+	//	Metadata(restfulspec.KeyOpenAPITags, tags).
+	//	Writes(coreV1.ServiceAccount{}). // on the response
+	//	Returns(200, "OK", nil).
+	//	Returns(404, "Not Found", nil))
+	//
+	//ws.Route(ws.DELETE("/{namespace}/{serviceAccount}").To(sar.removeServiceAccount).
+	//	// docs
+	//	Doc("delete specified service account in specified namespace").
+	//	Param(ws.PathParameter("namespace", "identifier of the namespace").DataType("string").DefaultValue("default")).
+	//	Param(ws.PathParameter("serviceAccount", "identifier of the serviceAccount").DataType("string").DefaultValue("default")).
+	//	Metadata(restfulspec.KeyOpenAPITags, tags).
+	//	Writes(""). // on the response
+	//	Returns(200, "OK", nil).
+	//	Returns(404, "Not Found", nil))
 
 	return ws
 }
@@ -78,15 +78,15 @@ func (sar ServiceAccountResource) WebService() *restful.WebService {
 // GET http://localhost:8080/serviceAccount/default
 //
 func (sar ServiceAccountResource) findAllServiceAccount(request *restful.Request, response *restful.Response) {
-	nameofspace := request.PathParameter("namespace")
+	nameOfSpace := request.PathParameter("namespace")
 
-	serviceAccounts, err := sar.k8sclient.CoreV1().ServiceAccounts(nameofspace).List(meta_v1.ListOptions{})
+	serviceAccounts, err := sar.k8sClient.CoreV1().ServiceAccounts(nameOfSpace).List(metaV1.ListOptions{})
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
 
-	list := []string{}
+	var list []string
 	for _, each := range serviceAccounts.Items {
 		list = append(list, each.Name)
 	}
@@ -99,7 +99,7 @@ func (sar ServiceAccountResource) getServiceAccount(request *restful.Request, re
 	nameofspace := request.PathParameter("namespace")
 	nameofaccount := request.PathParameter("serviceAccount")
 
-	serviceAccount, err := sar.k8sclient.CoreV1().ServiceAccounts(nameofspace).Get(nameofaccount, meta_v1.GetOptions{})
+	serviceAccount, err := sar.k8sClient.CoreV1().ServiceAccounts(nameofspace).Get(nameofaccount, metaV1.GetOptions{})
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
 		return
@@ -110,21 +110,21 @@ func (sar ServiceAccountResource) getServiceAccount(request *restful.Request, re
 // PUT http://localhost:8080/serviceAccount/clustar-{ns}/default
 //
 func (sar ServiceAccountResource) createServiceAccount(request *restful.Request, response *restful.Response) {
-	nameofspace := request.PathParameter("namespace")
-	nameofaccount := request.PathParameter("serviceAccount")
+	nameOfSpace := request.PathParameter("namespace")
+	nameOfAccount := request.PathParameter("serviceAccount")
 
-	if !strings.HasPrefix(nameofspace, sar.selfDefineResourePrefix) {
+	if !strings.HasPrefix(nameOfSpace, sar.selfDefineResourcePrefix) {
 		response.WriteError(http.StatusBadRequest,
-			errors.New(fmt.Sprintf("namespace: %s is not self define namespace, cannot create service account!")))
+			errors.New(fmt.Sprintf("namespace: %s is not self define namespace, cannot create service account!", nameOfSpace)))
 		return
 	}
 
-	serviceAccountTmp := &core_v1.ServiceAccount{}
+	serviceAccountTmp := &coreV1.ServiceAccount{}
 	serviceAccountTmp.APIVersion = "v1"
 	serviceAccountTmp.Kind = "Namespace"
-	serviceAccountTmp.Namespace = nameofspace
-	serviceAccountTmp.Name = nameofaccount
-	serviceAccount, err := sar.k8sclient.CoreV1().ServiceAccounts(nameofspace).Create(serviceAccountTmp)
+	serviceAccountTmp.Namespace = nameOfSpace
+	serviceAccountTmp.Name = nameOfAccount
+	serviceAccount, err := sar.k8sClient.CoreV1().ServiceAccounts(nameOfSpace).Create(serviceAccountTmp)
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
 		return
@@ -134,17 +134,17 @@ func (sar ServiceAccountResource) createServiceAccount(request *restful.Request,
 
 // DELETE http://localhost:8080/serviceAccount/clustar-{ns}/default
 //
-func (sar *ServiceAccountResource) deleteServiceAccount(request *restful.Request, response *restful.Response) {
-	nameofspace := request.PathParameter("namespace")
-	nameofaccount := request.PathParameter("serviceAccount")
+func (sar *ServiceAccountResource) removeServiceAccount(request *restful.Request, response *restful.Response) {
+	nameOfSpace := request.PathParameter("namespace")
+	nameOfAccount := request.PathParameter("serviceAccount")
 
-	if !strings.HasPrefix(nameofspace, sar.selfDefineResourePrefix) {
+	if !strings.HasPrefix(nameOfSpace, sar.selfDefineResourcePrefix) {
 		response.WriteError(http.StatusBadRequest,
-			errors.New(fmt.Sprintf("namespace: %s is not self define resouce, cannot remove through service!", nameofspace)))
+			errors.New(fmt.Sprintf("namespace: %s is not self define resouce, cannot remove through service!", nameOfSpace)))
 		return
 	}
 
-	err := sar.k8sclient.CoreV1().ServiceAccounts(nameofspace).Delete(nameofaccount, &meta_v1.DeleteOptions{})
+	err := sar.k8sClient.CoreV1().ServiceAccounts(nameOfSpace).Delete(nameOfAccount, &metaV1.DeleteOptions{})
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
 		return

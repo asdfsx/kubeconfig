@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/asdfsx/kubeconfig/pkg/restful"
+	"github.com/starcloud-ai/kubeconfig/pkg/restful"
 )
 
 var (
@@ -20,7 +20,7 @@ var (
 	incluster     bool
 )
 
-const GLOBAL_PREFIX = "clustar"
+const globalPrefix = "clustar-"
 
 func init() {
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
@@ -29,56 +29,40 @@ func init() {
 	flag.BoolVar(&incluster, "incluster", false, "Deploy the server inside the cluster or outside the cluster")
 }
 
-type Item struct {
-	Seq    int
-	Result map[string]int
-}
-
-type Message struct {
-	Dept    string
-	Subject string
-	Time    int64
-	Detail  []Item
-}
-
-type kubeClient struct {
-	k8sclient       kubernetes.Interface
-	cluster_server  string
-	cluster_ca_data []byte
-}
-
 func main() {
 	flag.Parse()
 
 	var cfg *rest.Config
 	var err error
 
-	var cluster_server string
-	var cluster_ca_data []byte
+	var clusterServer string
+	var clusterCAData []byte
 
 	if incluster {
 		cfg, err = rest.InClusterConfig()
-		cluster_server = os.Getenv("CLUSTER_SERVER")
+		if err != nil {
+			glog.Fatalf("Error building kubeconfig: %s", err.Error())
+		}
+		clusterServer = os.Getenv("CLUSTER_SERVER")
 		tmp := os.Getenv("CLUSTER_CA_DATA")
-		cluster_ca_data, err = base64.StdEncoding.DecodeString(tmp)
+		clusterCAData, err = base64.StdEncoding.DecodeString(tmp)
 		if err != nil {
 			glog.Fatalf("Error decoding ca-data: %s", err.Error())
 		}
 	} else {
 		cfg, err = clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
-		cluster_server = cfg.Host
-		cluster_ca_data = cfg.CAData
+		if err != nil {
+			glog.Fatalf("Error building kubeconfig: %s", err.Error())
+		}
+		clusterServer = cfg.Host
+		clusterCAData = cfg.CAData
 	}
 
-	if err != nil {
-		glog.Fatalf("Error building kubeconfig: %s", err.Error())
-	}
-
-	clientset, err := kubernetes.NewForConfig(cfg)
+	clientSet, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
 		glog.Fatalf("Error building kubeclient: %s", err.Error())
 	}
 
-	handler := restful.CreateHandler(clientset, GLOBAL_PREFIX, cluster_server, cluster_ca_data, swaggerUIDist)
+	handler := restful.CreateHandler(clientSet, globalPrefix, clusterServer, clusterCAData, swaggerUIDist)
 	http.ListenAndServe(":8085", handler)
 }

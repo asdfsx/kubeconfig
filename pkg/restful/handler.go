@@ -9,17 +9,23 @@ import (
 	"net/http"
 )
 
-func CreateHandler(k8sclient kubernetes.Interface, prefix string, cluster_ca_server string, cluster_ca_data []byte, swaggerUIDist string) http.Handler {
+func CreateHandler(k8sClient kubernetes.Interface, prefix string, clusterCAServer string, clusterCAData []byte, swaggerUIDist string) http.Handler {
 	container := restful.NewContainer()
 
-	nsr := createNameSpacesResource(k8sclient, prefix)
+	nsr := createNameSpacesResource(k8sClient, prefix)
 	container.Add(nsr.WebService())
 
-	kcr := createKubeConfigResource(k8sclient, cluster_ca_server, cluster_ca_data, prefix)
+	kcr := createKubeConfigResource(k8sClient, clusterCAServer, clusterCAData, prefix)
 	container.Add(kcr.WebService())
 
-	sar := createServiceAccountResource(k8sclient, prefix)
+	sar := createServiceAccountResource(k8sClient, prefix)
 	container.Add(sar.WebService())
+
+	rr := createRoleResource(k8sClient, prefix)
+	container.Add(rr.WebService())
+
+	crr := createClusterRoleResource(k8sClient)
+	container.Add(crr.WebService())
 
 	config := restfulspec.Config{
 		WebServices:                   container.RegisteredWebServices(), // you control what services are visible
@@ -55,13 +61,13 @@ func enrichSwaggerObject(swo *spec.Swagger) {
 				Email: "asdfsx@gmail.com",
 			},
 			License: &spec.License{
-				Name: "MIT",
-				URL:  "http://mit.org",
+				Name: "Apache 2.0",
+				URL:  "http://www.apache.org/licenses/LICENSE-2.0.html",
 			},
 			Version: "1.0.0",
 		},
 	}
-	swo.Tags = []spec.Tag{spec.Tag{TagProps: spec.TagProps{
+	swo.Tags = []spec.Tag{{TagProps: spec.TagProps{
 		Name:        "Kubeconfig",
 		Description: "Managing namespaces"}}}
 }

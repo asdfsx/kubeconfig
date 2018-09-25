@@ -8,20 +8,20 @@ import (
 
 	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful-openapi"
-	core_v1 "k8s.io/api/core/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	coreV1 "k8s.io/api/core/v1"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
 type NameSpacesResource struct {
-	k8sclient               kubernetes.Interface
-	selfDefineResourePrefix string
+	k8sClient               kubernetes.Interface
+	selfDefineResourcePrefix string
 }
 
 func createNameSpacesResource(k8sclient kubernetes.Interface, prefix string) (resource *NameSpacesResource) {
 	resource = &NameSpacesResource{
-		k8sclient:               k8sclient,
-		selfDefineResourePrefix: prefix,
+		k8sClient:               k8sclient,
+		selfDefineResourcePrefix: prefix,
 	}
 	return
 }
@@ -46,7 +46,7 @@ func (nsr NameSpacesResource) WebService() *restful.WebService {
 		Doc("get a namespace by name").
 		Param(ws.PathParameter("namespace", "identifier of the namespace").DataType("string").DefaultValue("default")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(core_v1.Namespace{}). // on the response
+		Writes(coreV1.Namespace{}). // on the response
 		Returns(200, "OK", nil).
 		Returns(404, "Not Found", nil))
 
@@ -55,13 +55,13 @@ func (nsr NameSpacesResource) WebService() *restful.WebService {
 		Doc("create a namespace").
 		Param(ws.PathParameter("namespace", "identifier of the namespace").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(core_v1.Namespace{}).
+		Writes(coreV1.Namespace{}).
 		Returns(200, "OK", nil).
 		Returns(404, "Not Found", nil))
 
 	ws.Route(ws.DELETE("/{namespace}").To(nsr.removeNamespace).
 		// docs
-		Doc(fmt.Sprintf("delete a namespace which prefix is %s", nsr.selfDefineResourePrefix)).
+		Doc(fmt.Sprintf("delete a namespace which prefix is %s", nsr.selfDefineResourcePrefix)).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
 		Param(ws.PathParameter("namespace", "identifier of the namespace").DataType("string")).
 		Writes("").
@@ -74,13 +74,13 @@ func (nsr NameSpacesResource) WebService() *restful.WebService {
 // GET http://localhost:8080/namespaces
 //
 func (nsr NameSpacesResource) findAllNamespaces(request *restful.Request, response *restful.Response) {
-	namespaces, err := nsr.k8sclient.CoreV1().Namespaces().List(meta_v1.ListOptions{})
+	namespaces, err := nsr.k8sClient.CoreV1().Namespaces().List(metaV1.ListOptions{})
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
 
-	list := []string{}
+	var list []string
 	for _, each := range namespaces.Items {
 		list = append(list, each.Name)
 	}
@@ -90,8 +90,8 @@ func (nsr NameSpacesResource) findAllNamespaces(request *restful.Request, respon
 // GET http://localhost:8080/namespaces/default
 //
 func (nsr NameSpacesResource) findNamespace(request *restful.Request, response *restful.Response) {
-	nameofspace := request.PathParameter("namespace")
-	namespace, err := nsr.k8sclient.CoreV1().Namespaces().Get(nameofspace, meta_v1.GetOptions{})
+	nameOfSpace := request.PathParameter("namespace")
+	namespace, err := nsr.k8sClient.CoreV1().Namespaces().Get(nameOfSpace, metaV1.GetOptions{})
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
 		return
@@ -102,28 +102,30 @@ func (nsr NameSpacesResource) findNamespace(request *restful.Request, response *
 // PUT http://localhost:8080/namespaces/clustar-{name}
 //
 func (nsr *NameSpacesResource) createNamespace(request *restful.Request, response *restful.Response) {
-	nameofspace := request.PathParameter("namespace")
-	if !strings.HasPrefix(nameofspace, nsr.selfDefineResourePrefix) {
-		nameofspace = fmt.Sprintf("%s-%s", nsr.selfDefineResourePrefix, nameofspace)
+	nameOfSpace := request.PathParameter("namespace")
+	if !strings.HasPrefix(nameOfSpace, nsr.selfDefineResourcePrefix) {
+		response.WriteError(http.StatusBadRequest, errors.New(
+			fmt.Sprintf("namespace: %s is not self define resouce, cannot use through service!", nameOfSpace)))
+		return
 	}
-	namespacetmp := &core_v1.Namespace{}
-	namespacetmp.APIVersion = "v1"
-	namespacetmp.Kind = "Namespace"
-	namespacetmp.Name = nameofspace
-	namespacetmp, err := nsr.k8sclient.CoreV1().Namespaces().Create(namespacetmp)
+	namespaceTmp := &coreV1.Namespace{}
+	namespaceTmp.APIVersion = "v1"
+	namespaceTmp.Kind = "Namespace"
+	namespaceTmp.Name = nameOfSpace
+	namespaceTmp, err := nsr.k8sClient.CoreV1().Namespaces().Create(namespaceTmp)
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
 	} else {
-		response.WriteEntity(namespacetmp)
+		response.WriteEntity(namespaceTmp)
 	}
 }
 
 // DELETE http://localhost:8080/namespaces/clustar-{name}
 //
 func (nsr *NameSpacesResource) removeNamespace(request *restful.Request, response *restful.Response) {
-	nameofspace := request.PathParameter("namespace")
-	if strings.HasPrefix(nameofspace, nsr.selfDefineResourePrefix) {
-		err := nsr.k8sclient.CoreV1().Namespaces().Delete(nameofspace, &meta_v1.DeleteOptions{})
+	nameOfSpace := request.PathParameter("namespace")
+	if strings.HasPrefix(nameOfSpace, nsr.selfDefineResourcePrefix) {
+		err := nsr.k8sClient.CoreV1().Namespaces().Delete(nameOfSpace, &metaV1.DeleteOptions{})
 		if err != nil {
 			response.WriteError(http.StatusInternalServerError, err)
 			return
@@ -131,6 +133,6 @@ func (nsr *NameSpacesResource) removeNamespace(request *restful.Request, respons
 		response.Write([]byte("{\"status\":\"success\"}"))
 	} else {
 		response.WriteError(http.StatusBadRequest,
-			errors.New(fmt.Sprintf("namespace: %s is not self define resouce, cannot remove through service!")))
+			errors.New(fmt.Sprintf("namespace: %s is not self define resouce, cannot remove through service!", nameOfSpace)))
 	}
 }

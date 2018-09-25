@@ -7,36 +7,29 @@ import (
 	"github.com/emicklei/go-restful-openapi"
 	"github.com/ghodss/yaml"
 	jsonitor "github.com/json-iterator/go"
-	core_v1 "k8s.io/api/core/v1"
-	rbac_v1 "k8s.io/api/rbac/v1"
-	k8s_error "k8s.io/apimachinery/pkg/api/errors"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	coreV1 "k8s.io/api/core/v1"
+	rbacV1 "k8s.io/api/rbac/v1"
+	k8sError "k8s.io/apimachinery/pkg/api/errors"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	k8s_cli_api "k8s.io/client-go/tools/clientcmd/api/v1"
+	k8sCliApi "k8s.io/client-go/tools/clientcmd/api/v1"
 	"net/http"
 	"strings"
 )
 
-const READONLYROLE = "cluster-readonly"
-const ROLEBINDINGNAME = "%s:%s:%s-binding"
-
-func getRoleBindingName(namespace, serviceaccount string) string {
-	return fmt.Sprintf(ROLEBINDINGNAME, namespace, serviceaccount, READONLYROLE)
-}
-
 type KubeConfigResource struct {
-	k8sclient               kubernetes.Interface
-	selfDefineResourePrefix string
+	k8sClient               kubernetes.Interface
+	selfDefineResourcePrefix string
 	clusterServer           string
 	clusterCAData           []byte
 }
 
-func createKubeConfigResource(k8sclient kubernetes.Interface, clusterServer string, clusterCAData []byte, prefix string) (resource *KubeConfigResource) {
+func createKubeConfigResource(k8sClient kubernetes.Interface, clusterServer string, clusterCAData []byte, prefix string) (resource *KubeConfigResource) {
 	resource = &KubeConfigResource{
-		k8sclient:               k8sclient,
+		k8sClient:               k8sClient,
 		clusterServer:           clusterServer,
 		clusterCAData:           clusterCAData,
-		selfDefineResourePrefix: prefix,
+		selfDefineResourcePrefix: prefix,
 	}
 	return
 }
@@ -55,7 +48,7 @@ func (kcr KubeConfigResource) WebService() *restful.WebService {
 		Param(ws.PathParameter("namespace", "identifier of the namespace").DataType("string").DefaultValue("default")).
 		Param(ws.PathParameter("serviceAccount", "identifier of the serviceAccount").DataType("string").DefaultValue("default")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(k8s_cli_api.Config{}). // on the response
+		Writes(k8sCliApi.Config{}). // on the response
 		Returns(200, "OK", nil).
 		Returns(404, "Not Found", nil))
 
@@ -82,16 +75,16 @@ func (kcr KubeConfigResource) WebService() *restful.WebService {
 // GET http://localhost:8080/kubeconfig/default/default
 //
 func (kcr KubeConfigResource) generateKubeConfig(request *restful.Request, response *restful.Response) {
-	nameofspace := request.PathParameter("namespace")
-	nameofaccount := request.PathParameter("serviceAccount")
+	nameOfSpace := request.PathParameter("namespace")
+	nameOfAccount := request.PathParameter("serviceAccount")
 
-	serviceAccount, err := kcr.k8sclient.CoreV1().ServiceAccounts(nameofspace).Get(nameofaccount, meta_v1.GetOptions{})
+	serviceAccount, err := kcr.k8sClient.CoreV1().ServiceAccounts(nameOfSpace).Get(nameOfAccount, metaV1.GetOptions{})
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
 
-	secret, err := kcr.k8sclient.CoreV1().Secrets(nameofspace).Get(serviceAccount.Secrets[0].Name, meta_v1.GetOptions{})
+	secret, err := kcr.k8sClient.CoreV1().Secrets(nameOfSpace).Get(serviceAccount.Secrets[0].Name, metaV1.GetOptions{})
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
 		return
@@ -161,24 +154,24 @@ func (kcr KubeConfigResource) createServiceAccountAction(action *serviceAccountA
 }
 
 func (kcr KubeConfigResource) checkNamespace(action *serviceAccountAction) (int, error) {
-	if !strings.HasPrefix(action.NameSpace, kcr.selfDefineResourePrefix) {
+	if !strings.HasPrefix(action.NameSpace, kcr.selfDefineResourcePrefix) {
 		return http.StatusBadRequest, errors.New(
 			fmt.Sprintf("namespace: %s is not self define resouce, cannot use through service!", action.NameSpace))
 	}
 
-	_, err := kcr.k8sclient.CoreV1().Namespaces().Get(action.NameSpace, meta_v1.GetOptions{})
+	_, err := kcr.k8sClient.CoreV1().Namespaces().Get(action.NameSpace, metaV1.GetOptions{})
 	if err == nil {
 		return http.StatusOK, nil
 	}
 
 	switch t := err.(type) {
-	case *k8s_error.StatusError:
-		if t.Status().Reason == meta_v1.StatusReasonNotFound {
-			namespacetmp := &core_v1.Namespace{}
+	case *k8sError.StatusError:
+		if t.Status().Reason == metaV1.StatusReasonNotFound {
+			namespacetmp := &coreV1.Namespace{}
 			namespacetmp.APIVersion = "v1"
 			namespacetmp.Kind = "Namespace"
 			namespacetmp.Name = action.NameSpace
-			_, err = kcr.k8sclient.CoreV1().Namespaces().Create(namespacetmp)
+			_, err = kcr.k8sClient.CoreV1().Namespaces().Create(namespacetmp)
 			if err != nil {
 				return http.StatusInternalServerError, err
 			}
@@ -190,20 +183,20 @@ func (kcr KubeConfigResource) checkNamespace(action *serviceAccountAction) (int,
 }
 
 func (kcr KubeConfigResource) checkServiceAccount(action *serviceAccountAction) (int, error) {
-	_, err := kcr.k8sclient.CoreV1().ServiceAccounts(action.NameSpace).Get(action.ServiceAccount, meta_v1.GetOptions{})
+	_, err := kcr.k8sClient.CoreV1().ServiceAccounts(action.NameSpace).Get(action.ServiceAccount, metaV1.GetOptions{})
 	if err == nil {
 		return http.StatusOK, nil
 	}
 
 	switch t := err.(type) {
-	case *k8s_error.StatusError:
-		if t.Status().Reason == meta_v1.StatusReasonNotFound {
-			serviceaccounttmp := &core_v1.ServiceAccount{}
+	case *k8sError.StatusError:
+		if t.Status().Reason == metaV1.StatusReasonNotFound {
+			serviceaccounttmp := &coreV1.ServiceAccount{}
 			serviceaccounttmp.APIVersion = "v1"
 			serviceaccounttmp.Kind = "ServiceAccount"
 			serviceaccounttmp.Name = action.ServiceAccount
 			serviceaccounttmp.Namespace = action.NameSpace
-			_, err = kcr.k8sclient.CoreV1().ServiceAccounts(action.NameSpace).Create(serviceaccounttmp)
+			_, err = kcr.k8sClient.CoreV1().ServiceAccounts(action.NameSpace).Create(serviceaccounttmp)
 			if err != nil {
 				return http.StatusInternalServerError, err
 			}
@@ -215,25 +208,25 @@ func (kcr KubeConfigResource) checkServiceAccount(action *serviceAccountAction) 
 }
 
 func (kcr KubeConfigResource) checkClusterRole(action *serviceAccountAction) (int, error) {
-	_, err := kcr.k8sclient.RbacV1().ClusterRoles().Get(READONLYROLE, meta_v1.GetOptions{})
+	_, err := kcr.k8sClient.RbacV1().ClusterRoles().Get(readOnlyRole, metaV1.GetOptions{})
 	if err == nil {
 		return http.StatusOK, nil
 	}
 
 	switch t := err.(type) {
-	case *k8s_error.StatusError:
-		if t.Status().Reason == meta_v1.StatusReasonNotFound {
-			roletmp := &rbac_v1.ClusterRole{}
+	case *k8sError.StatusError:
+		if t.Status().Reason == metaV1.StatusReasonNotFound {
+			roletmp := &rbacV1.ClusterRole{}
 			roletmp.APIVersion = "v1"
 			roletmp.Kind = "ClusterRole"
-			roletmp.Name = READONLYROLE
+			roletmp.Name = readOnlyRole
 			roletmp.Namespace = action.NameSpace
-			roletmp.Rules = append(roletmp.Rules, rbac_v1.PolicyRule{
+			roletmp.Rules = append(roletmp.Rules, rbacV1.PolicyRule{
 				APIGroups: []string{""},
 				Resources: []string{"*"},
 				Verbs:     []string{"get", "list", "watch"},
 			})
-			_, err := kcr.k8sclient.RbacV1().ClusterRoles().Create(roletmp)
+			_, err := kcr.k8sClient.RbacV1().ClusterRoles().Create(roletmp)
 			fmt.Println(err)
 			if err != nil {
 				return http.StatusInternalServerError, err
@@ -247,28 +240,28 @@ func (kcr KubeConfigResource) checkClusterRole(action *serviceAccountAction) (in
 
 func (kcr KubeConfigResource) checkClusterRoleBinding(action *serviceAccountAction) (int, error) {
 	bindingName := getRoleBindingName(action.NameSpace, action.ServiceAccount)
-	_, err := kcr.k8sclient.RbacV1().ClusterRoleBindings().Get(bindingName, meta_v1.GetOptions{})
+	_, err := kcr.k8sClient.RbacV1().ClusterRoleBindings().Get(bindingName, metaV1.GetOptions{})
 	if err == nil {
 		return http.StatusOK, nil
 	}
 
 	switch t := err.(type) {
-	case *k8s_error.StatusError:
-		if t.Status().Reason == meta_v1.StatusReasonNotFound {
-			rolebindingtmp := &rbac_v1.ClusterRoleBinding{}
+	case *k8sError.StatusError:
+		if t.Status().Reason == metaV1.StatusReasonNotFound {
+			rolebindingtmp := &rbacV1.ClusterRoleBinding{}
 			rolebindingtmp.APIVersion = "v1"
 			rolebindingtmp.Kind = "ClusterRoleBinding"
 			rolebindingtmp.Name = bindingName
 			rolebindingtmp.Namespace = action.NameSpace
-			rolebindingtmp.Subjects = append(rolebindingtmp.Subjects, rbac_v1.Subject{
+			rolebindingtmp.Subjects = append(rolebindingtmp.Subjects, rbacV1.Subject{
 				Kind:      "ServiceAccount",
 				Name:      action.ServiceAccount,
 				Namespace: action.NameSpace,
 			})
 			rolebindingtmp.RoleRef.Kind = "ClusterRole"
-			rolebindingtmp.RoleRef.Name = READONLYROLE
+			rolebindingtmp.RoleRef.Name = readOnlyRole
 
-			_, err = kcr.k8sclient.RbacV1().ClusterRoleBindings().Create(rolebindingtmp)
+			_, err = kcr.k8sClient.RbacV1().ClusterRoleBindings().Create(rolebindingtmp)
 			if err != nil {
 				return http.StatusInternalServerError, err
 			}
@@ -280,22 +273,22 @@ func (kcr KubeConfigResource) checkClusterRoleBinding(action *serviceAccountActi
 }
 
 func (kcr KubeConfigResource) deleteServiceAccount(request *restful.Request, response *restful.Response) {
-	nameofspace := request.PathParameter("namespace")
-	nameofaccount := request.PathParameter("serviceAccount")
+	nameOfSpace := request.PathParameter("namespace")
+	nameOfAccount := request.PathParameter("serviceAccount")
 
-	if !strings.HasPrefix(nameofspace, kcr.selfDefineResourePrefix) {
+	if !strings.HasPrefix(nameOfSpace, kcr.selfDefineResourcePrefix) {
 		response.WriteError(http.StatusBadRequest, errors.New(
-			fmt.Sprintf("namespace: %s is not self define resouce, cannot remove through service!", nameofspace)))
+			fmt.Sprintf("namespace: %s is not self define resouce, cannot remove through service!", nameOfSpace)))
 		return
 	}
 
-	bindingName := getRoleBindingName(nameofspace, nameofaccount)
-	err := kcr.k8sclient.RbacV1().ClusterRoleBindings().Delete(bindingName, &meta_v1.DeleteOptions{})
+	bindingName := getRoleBindingName(nameOfSpace, nameOfAccount)
+	err := kcr.k8sClient.RbacV1().ClusterRoleBindings().Delete(bindingName, &metaV1.DeleteOptions{})
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
-	err = kcr.k8sclient.CoreV1().ServiceAccounts(nameofspace).Delete(nameofaccount, &meta_v1.DeleteOptions{})
+	err = kcr.k8sClient.CoreV1().ServiceAccounts(nameOfSpace).Delete(nameOfAccount, &metaV1.DeleteOptions{})
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
 		return
@@ -303,27 +296,27 @@ func (kcr KubeConfigResource) deleteServiceAccount(request *restful.Request, res
 	response.Write([]byte("{\"status\":\"success\"}"))
 }
 
-func generateConfigMap(name string, token []byte, server string, caData []byte) (confMap *k8s_cli_api.Config) {
-	confMap = &k8s_cli_api.Config{}
+func generateConfigMap(name string, token []byte, server string, caData []byte) (confMap *k8sCliApi.Config) {
+	confMap = &k8sCliApi.Config{}
 	confMap.APIVersion = "v1"
 	confMap.Kind = "Config"
 	confMap.CurrentContext = name
-	confMap.Contexts = append(confMap.Contexts, k8s_cli_api.NamedContext{
+	confMap.Contexts = append(confMap.Contexts, k8sCliApi.NamedContext{
 		Name: name,
-		Context: k8s_cli_api.Context{
+		Context: k8sCliApi.Context{
 			AuthInfo: name,
 			Cluster:  name,
 		},
 	})
-	confMap.AuthInfos = append(confMap.AuthInfos, k8s_cli_api.NamedAuthInfo{
+	confMap.AuthInfos = append(confMap.AuthInfos, k8sCliApi.NamedAuthInfo{
 		Name: name,
-		AuthInfo: k8s_cli_api.AuthInfo{
+		AuthInfo: k8sCliApi.AuthInfo{
 			Token: fmt.Sprintf("%s", token),
 		},
 	})
-	confMap.Clusters = append(confMap.Clusters, k8s_cli_api.NamedCluster{
+	confMap.Clusters = append(confMap.Clusters, k8sCliApi.NamedCluster{
 		Name: name,
-		Cluster: k8s_cli_api.Cluster{
+		Cluster: k8sCliApi.Cluster{
 			Server:                   server,
 			CertificateAuthorityData: caData,
 		},
