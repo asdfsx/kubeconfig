@@ -16,12 +16,26 @@ docker run --rm -v "${PWD}":"${imagesrcpath}" -w ${imagesrcpath} ${image} go bui
 docker build -t kubeconfig:latest .
 ```
 
+### linter
+安装`gometalinter`
+```bash
+brew tap alecthomas/homebrew-tap
+brew install gometalinter
+```
+当前版本对`go module`支持还不好，所以只能在执行时关闭`go module`
+```bash
+go mod vendor
+GO111MODULE=off gometalinter --skip=./vendor --deadline=5m
+```
+
+
 ### 使用makefile编译
 ```bash
 $ make help
   all                            build binary, then build and push image
   build                          build for docker
   clean                          Delete kubeconfig binary
+  lint                           use gometalinter to check code
   push                           push image to docker registry
   vendor                         add dependencies to vendor directory
 ```

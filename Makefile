@@ -14,6 +14,9 @@ clean: ## Delete kubeconfig binary
 vendor: ## add dependencies to vendor directory
 	go mod vendor
 
+lint: vendor ## use gometalinter to check code
+	GO111MODULE=off gometalinter --skip=./vendor --deadline=5m
+
 build: clean vendor ## build for docker
 	docker run --rm -v "${PWD}":"${WORKDIR}" -w ${WORKDIR} ${BUILD_IMAGE} go build -o ${TARGET}
 	docker build -t ${IMAGE} .

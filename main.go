@@ -17,7 +17,7 @@ var (
 	kubeconfig      string
 	swaggerUIDist   string
 	incluster       bool
-	namespacePrefix string = "clustar-"
+	namespacePrefix = "clustar-"
 )
 
 func init() {
@@ -67,5 +67,8 @@ func main() {
 	}
 
 	handler := restful.CreateHandler(clientSet, namespacePrefix, clusterServer, clusterCAData, swaggerUIDist)
-	http.ListenAndServe(":8085", handler)
+	err = http.ListenAndServe(":8085", handler)
+	if err != nil {
+		glog.Fatalf("Error running http server: %s", err.Error())
+	}
 }
