@@ -51,7 +51,7 @@ func CreateHandler(k8sClient kubernetes.Interface, prefix string, clusterCAServe
 }
 
 func enrichSwaggerObject(swo *spec.Swagger) {
-	swo.Schemes = []string{"http"}
+	swo.Schemes = []string{"http", "https"}
 	swo.Info = &spec.Info{
 		InfoProps: spec.InfoProps{
 			Title:       "KubeService",

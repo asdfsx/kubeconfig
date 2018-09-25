@@ -4,23 +4,21 @@ import (
 	"encoding/base64"
 	"flag"
 	"github.com/golang/glog"
+	"github.com/starcloud-ai/kubeconfig/pkg/restful"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"net/http"
 	"os"
-
-	"github.com/starcloud-ai/kubeconfig/pkg/restful"
 )
 
 var (
-	masterURL     string
-	kubeconfig    string
-	swaggerUIDist string
-	incluster     bool
+	masterURL       string
+	kubeconfig      string
+	swaggerUIDist   string
+	incluster       bool
+	namespacePrefix string = "clustar-"
 )
-
-const globalPrefix = "clustar-"
 
 func init() {
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
@@ -44,8 +42,9 @@ func main() {
 			glog.Fatalf("Error building kubeconfig: %s", err.Error())
 		}
 		clusterServer = os.Getenv("CLUSTER_SERVER")
-		tmp := os.Getenv("CLUSTER_CA_DATA")
-		clusterCAData, err = base64.StdEncoding.DecodeString(tmp)
+		clusterCADataOriginal := os.Getenv("CLUSTER_CA_DATA")
+
+		clusterCAData, err = base64.StdEncoding.DecodeString(clusterCADataOriginal)
 		if err != nil {
 			glog.Fatalf("Error decoding ca-data: %s", err.Error())
 		}
@@ -58,11 +57,15 @@ func main() {
 		clusterCAData = cfg.CAData
 	}
 
+	if t := os.Getenv("NAMESPACE_PREFIX"); t != "" {
+		namespacePrefix = t
+	}
+
 	clientSet, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
 		glog.Fatalf("Error building kubeclient: %s", err.Error())
 	}
 
-	handler := restful.CreateHandler(clientSet, globalPrefix, clusterServer, clusterCAData, swaggerUIDist)
+	handler := restful.CreateHandler(clientSet, namespacePrefix, clusterServer, clusterCAData, swaggerUIDist)
 	http.ListenAndServe(":8085", handler)
 }

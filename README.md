@@ -32,3 +32,9 @@ kubectl create -f artifacts/init-namespace.yaml
 kubectl create -f artifacts/kubeconfig-deploy.yaml
 kubectl create -f artifacts/kubeconfig-ingress.yaml
 ```
+
+### 本地测试运行
+```bash
+go build
+NAMESPACE_PREFIX=clustar- ./kubeconfig -kubeconfig=~/.kube/hongkongconfig -swagger-ui-dist=./swagger-ui-dist/
+```

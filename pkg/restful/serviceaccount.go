@@ -52,25 +52,26 @@ func (sar ServiceAccountResource) WebService() *restful.WebService {
 		Returns(200, "OK", nil).
 		Returns(404, "Not Found", nil))
 
-	//ws.Route(ws.POST("/{namespace}/{serviceAccount}").To(sar.createServiceAccount).
-	//	// docs
-	//	Doc("create service account in specified namespace").
-	//	Param(ws.PathParameter("namespace", "identifier of the namespace").DataType("string").DefaultValue("default")).
-	//	Param(ws.PathParameter("serviceAccount", "identifier of the serviceAccount").DataType("string").DefaultValue("default")).
-	//	Metadata(restfulspec.KeyOpenAPITags, tags).
-	//	Writes(coreV1.ServiceAccount{}). // on the response
-	//	Returns(200, "OK", nil).
-	//	Returns(404, "Not Found", nil))
-	//
-	//ws.Route(ws.DELETE("/{namespace}/{serviceAccount}").To(sar.removeServiceAccount).
-	//	// docs
-	//	Doc("delete specified service account in specified namespace").
-	//	Param(ws.PathParameter("namespace", "identifier of the namespace").DataType("string").DefaultValue("default")).
-	//	Param(ws.PathParameter("serviceAccount", "identifier of the serviceAccount").DataType("string").DefaultValue("default")).
-	//	Metadata(restfulspec.KeyOpenAPITags, tags).
-	//	Writes(""). // on the response
-	//	Returns(200, "OK", nil).
-	//	Returns(404, "Not Found", nil))
+	ws.Route(ws.PUT("/{namespace}/{serviceAccount}").To(sar.createServiceAccount).
+		// docs
+		Doc("create service account in specified namespace").
+		Param(ws.PathParameter("namespace", "identifier of the namespace").DataType("string").DefaultValue("default")).
+		Param(ws.PathParameter("serviceAccount", "identifier of the serviceAccount").DataType("string").DefaultValue("default")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(serviceAccountAction{}).
+		Writes(coreV1.ServiceAccount{}). // on the response
+		Returns(200, "OK", nil).
+		Returns(404, "Not Found", nil))
+
+	ws.Route(ws.DELETE("/{namespace}/{serviceAccount}").To(sar.removeServiceAccount).
+		// docs
+		Doc("delete specified service account in specified namespace").
+		Param(ws.PathParameter("namespace", "identifier of the namespace").DataType("string").DefaultValue("default")).
+		Param(ws.PathParameter("serviceAccount", "identifier of the serviceAccount").DataType("string").DefaultValue("default")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes(""). // on the response
+		Returns(200, "OK", nil).
+		Returns(404, "Not Found", nil))
 
 	return ws
 }
@@ -96,10 +97,10 @@ func (sar ServiceAccountResource) findAllServiceAccount(request *restful.Request
 // GET http://localhost:8080/serviceAccount/default/default
 //
 func (sar ServiceAccountResource) getServiceAccount(request *restful.Request, response *restful.Response) {
-	nameofspace := request.PathParameter("namespace")
-	nameofaccount := request.PathParameter("serviceAccount")
+	nameOfSpace := request.PathParameter("namespace")
+	nameOfAccount := request.PathParameter("serviceAccount")
 
-	serviceAccount, err := sar.k8sClient.CoreV1().ServiceAccounts(nameofspace).Get(nameofaccount, metaV1.GetOptions{})
+	serviceAccount, err := sar.k8sClient.CoreV1().ServiceAccounts(nameOfSpace).Get(nameOfAccount, metaV1.GetOptions{})
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
 		return

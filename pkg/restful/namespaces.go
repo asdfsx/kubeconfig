@@ -50,11 +50,12 @@ func (nsr NameSpacesResource) WebService() *restful.WebService {
 		Returns(200, "OK", nil).
 		Returns(404, "Not Found", nil))
 
-	ws.Route(ws.POST("/{namespace}").To(nsr.createNamespace).
+	ws.Route(ws.PUT("/{namespace}").To(nsr.createNamespace).
 		// docs
 		Doc("create a namespace").
 		Param(ws.PathParameter("namespace", "identifier of the namespace").DataType("string")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(serviceAccountAction{}).
 		Writes(coreV1.Namespace{}).
 		Returns(200, "OK", nil).
 		Returns(404, "Not Found", nil))

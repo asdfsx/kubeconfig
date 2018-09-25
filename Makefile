@@ -1,4 +1,4 @@
-PACKAGE = github.com/asdfsx/kubeconfig
+PACKAGE = github.com/starcloud-ai/kubeconfig
 COMMIT_HASH = `git rev-parse --short HEAD 2>/dev/null`
 BUILD_DATE = `date +%FT%T%z`
 BUILD_IMAGE = golang:1.11-alpine
