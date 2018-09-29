@@ -8,7 +8,7 @@ set GO111MODULE=on
 // 为了方便从镜像里编译程序，将所有依赖都加载到vendor目录
 go mod vendor
 // 使用 docker 编译代码
-imagesrcpath="/go/src/github.com/asdfsx/kubeconfig"
+imagesrcpath="/go/src/github.com/starcloud-ai/kubeconfig"
 image="golang:1.11-alpine"
 target="kubeconfig"
 docker run --rm -v "${PWD}":"${imagesrcpath}" -w ${imagesrcpath} ${image} go build -v -o ${target}
