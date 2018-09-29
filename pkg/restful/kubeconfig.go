@@ -18,17 +18,26 @@ import (
 )
 
 type KubeConfigResource struct {
-	k8sClient               kubernetes.Interface
+	k8sClient                kubernetes.Interface
+	clusterServer            string
+	clusterCAData            []byte
+	tillerNamespace          string
+	tillerRole               string
 	selfDefineResourcePrefix string
-	clusterServer           string
-	clusterCAData           []byte
 }
 
-func createKubeConfigResource(k8sClient kubernetes.Interface, clusterServer string, clusterCAData []byte, prefix string) (resource *KubeConfigResource) {
+func createKubeConfigResource(k8sClient kubernetes.Interface,
+	clusterServer string,
+	clusterCAData []byte,
+	tillerNamespace string,
+	tillerRole string,
+	prefix string) (resource *KubeConfigResource) {
 	resource = &KubeConfigResource{
 		k8sClient:               k8sClient,
 		clusterServer:           clusterServer,
 		clusterCAData:           clusterCAData,
+		tillerNamespace:         tillerNamespace,
+		tillerRole:              tillerRole,
 		selfDefineResourcePrefix: prefix,
 	}
 	return
@@ -126,28 +135,42 @@ func (kcr KubeConfigResource) createServiceAccountAction(action *serviceAccountA
 	// if not exists then create it
 	statenum, err := kcr.checkNamespace(action)
 	if err != nil {
-		return statenum, err
+		return statenum, errors.New(fmt.Sprintf("error while checkNamespace:%s", err))
 	}
 
 	// check if serviceAccount is exsists
 	// if not exists then create it
 	statenum, err = kcr.checkServiceAccount(action)
 	if err != nil {
-		return statenum, err
+		return statenum, errors.New(fmt.Sprintf("error while checkServiceAccount:%s", err))
+	}
+
+	// check if cluster role is exists
+	// if not exists then create it
+	statenum, err = kcr.checkClusterRole(action)
+	if err != nil {
+		return statenum, errors.New(fmt.Sprintf("error while checkClusterRole:%s", err))
+	}
+
+	// check if cluster rolebinding is exists
+	// if not exists then create it
+	statenum, err = kcr.checkClusterRoleBinding(action)
+	if err != nil {
+		return statenum, errors.New(fmt.Sprintf("error while checkClusterRoleBinding:%s", err))
 	}
 
 	// check if role is exists
 	// if not exists then create it
-	statenum, err = kcr.checkClusterRole(action)
+	statenum, err = kcr.checkRole(action)
 	if err != nil {
-		return statenum, err
+		return statenum, errors.New(fmt.Sprintf("error while checkRole:%s", err))
 	}
 
 	// check if rolebinding is exists
 	// if not exists then create it
-	statenum, err = kcr.checkClusterRoleBinding(action)
+	statenum, err = kcr.checkRoleBinding(action)
 	if err != nil {
-		return statenum, err
+		return statenum, errors.New(fmt.Sprintf("error while checkRoleBinding:%s", err))
 	}
 
 	return http.StatusOK, nil
@@ -207,6 +230,16 @@ func (kcr KubeConfigResource) checkServiceAccount(action *serviceAccountAction) 
 	return http.StatusOK, nil
 }
 
+// tiller 的 role 应该在安装helm的时候创建好，所以这里只是检查是否存在，不执行创建了
+func (kcr KubeConfigResource) checkRole(action *serviceAccountAction) (int, error) {
+	_, err := kcr.k8sClient.RbacV1().Roles(kcr.tillerNamespace).Get(kcr.tillerRole, metaV1.GetOptions{})
+	if err == nil {
+		return http.StatusOK, nil
+	} else {
+		return http.StatusInternalServerError, err
+	}
+}
+
 func (kcr KubeConfigResource) checkClusterRole(action *serviceAccountAction) (int, error) {
 	_, err := kcr.k8sClient.RbacV1().ClusterRoles().Get(readOnlyRole, metaV1.GetOptions{})
 	if err == nil {
@@ -227,7 +260,6 @@ func (kcr KubeConfigResource) checkClusterRole(action *serviceAccountAction) (in
 				Verbs:     []string{"get", "list", "watch"},
 			})
 			_, err := kcr.k8sClient.RbacV1().ClusterRoles().Create(roletmp)
-			fmt.Println(err)
 			if err != nil {
 				return http.StatusInternalServerError, err
 			}
@@ -239,7 +271,7 @@ func (kcr KubeConfigResource) checkClusterRole(action *serviceAccountAction) (in
 }
 
 func (kcr KubeConfigResource) checkClusterRoleBinding(action *serviceAccountAction) (int, error) {
-	bindingName := getRoleBindingName(action.NameSpace, action.ServiceAccount)
+	bindingName := getRoleBindingName(action.NameSpace, action.ServiceAccount, readOnlyRole)
 	_, err := kcr.k8sClient.RbacV1().ClusterRoleBindings().Get(bindingName, metaV1.GetOptions{})
 	if err == nil {
 		return http.StatusOK, nil
@@ -272,6 +304,40 @@ func (kcr KubeConfigResource) checkClusterRoleBinding(action *serviceAccountActi
 	return http.StatusOK, nil
 }
 
+func (kcr KubeConfigResource) checkRoleBinding(action *serviceAccountAction) (int, error) {
+	bindingName := getRoleBindingName(kcr.tillerNamespace, action.ServiceAccount, kcr.tillerRole)
+	_, err := kcr.k8sClient.RbacV1().RoleBindings(kcr.tillerNamespace).Get(bindingName, metaV1.GetOptions{})
+	if err == nil {
+		return http.StatusOK, nil
+	}
+
+	switch t := err.(type) {
+	case *k8sError.StatusError:
+		if t.Status().Reason == metaV1.StatusReasonNotFound {
+			rolebindingtmp := &rbacV1.RoleBinding{}
+			rolebindingtmp.APIVersion = "v1"
+			rolebindingtmp.Kind = "RoleBinding"
+			rolebindingtmp.Name = bindingName
+			rolebindingtmp.Namespace = kcr.tillerNamespace
+			rolebindingtmp.Subjects = append(rolebindingtmp.Subjects, rbacV1.Subject{
+				Kind:      "ServiceAccount",
+				Name:      action.ServiceAccount,
+				Namespace: action.NameSpace,
+			})
+			rolebindingtmp.RoleRef.Kind = "Role"
+			rolebindingtmp.RoleRef.Name = kcr.tillerRole
+
+			_, err = kcr.k8sClient.RbacV1().RoleBindings(kcr.tillerNamespace).Create(rolebindingtmp)
+			if err != nil {
+				return http.StatusInternalServerError, err
+			}
+		} else {
+			return http.StatusInternalServerError, err
+		}
+	}
+	return http.StatusOK, nil
+}
+
 func (kcr KubeConfigResource) deleteServiceAccount(request *restful.Request, response *restful.Response) {
 	nameOfSpace := request.PathParameter("namespace")
 	nameOfAccount := request.PathParameter("serviceAccount")
@@ -282,8 +348,14 @@ func (kcr KubeConfigResource) deleteServiceAccount(request *restful.Request, res
 		return
 	}
 
-	bindingName := getRoleBindingName(nameOfSpace, nameOfAccount)
+	bindingName := getRoleBindingName(nameOfSpace, nameOfAccount, readOnlyRole)
 	err := kcr.k8sClient.RbacV1().ClusterRoleBindings().Delete(bindingName, &metaV1.DeleteOptions{})
+	if err != nil {
+		response.WriteError(http.StatusInternalServerError, err)
+		return
+	}
+	bindingName = getRoleBindingName(kcr.tillerNamespace, nameOfAccount, kcr.tillerRole)
+	err = kcr.k8sClient.RbacV1().RoleBindings(kcr.tillerNamespace).Delete(bindingName, &metaV1.DeleteOptions{})
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
 		return

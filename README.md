@@ -42,7 +42,7 @@ $ make help
 
 ### 部署
 ```bash
-kubectl create -f artifacts/init-namespace.yaml
+kubectl create -f artifacts/kubeconfig-namespace.yaml
 kubectl create -f artifacts/kubeconfig-deploy.yaml
 kubectl create -f artifacts/kubeconfig-ingress.yaml
 ```
@@ -51,4 +51,46 @@ kubectl create -f artifacts/kubeconfig-ingress.yaml
 ```bash
 go build
 NAMESPACE_PREFIX=clustar- ./kubeconfig -kubeconfig=~/.kube/hongkongconfig -swagger-ui-dist=./swagger-ui-dist/
+```
+
+### 测试arena
+1. 下载arena
+```bash
+mkdir /charts
+git clone https://github.com/kubeflow/arena.git
+cp -r arena/charts/* /charts
+```
+
+2. 安装
+```bash
+kubectl create -f arena/kubernetes-artifacts/jobmon/jobmon-role.yaml
+kubectl create -f arena/kubernetes-artifacts/tf-operator/tf-operator.yaml
+kubectl create -f arena/kubernetes-artifacts/dashboard/dashboard.yaml
+```
+
+3. 创建一个单独的namespace
+```bash
+curl -X POST "http://kubeconfig.hongkong.ai/kubeconfig" \
+     -H "accept: application/json" \
+     -H "Content-Type: application/json" \
+     -d "{ \"namespace\": \"clustar-sample\", \"serviceaccount\": \"sample\"}"
+```
+
+4. 获取kubeconfig
+```bash
+curl http://kubeconfig.hongkong.ai/kubeconfig/clustar-sample/sample > testconfig 
+```
+
+5. 使用arena提交任务到新创建到namespace中
+```sh
+arena submit tf \
+             --config=testconfig \
+             --namespace=clustar-sample \
+             --name=tf-git \
+             --image=tensorflow/tensorflow:1.11.0 \
+             --syncMode=git \
+             --syncSource=https://github.com/cheyang/tensorflow-sample-code.git \
+             --loglevel=debug \
+             "python code/tensorflow-sample-code/tfjob/docker/mnist/main.py --max_steps 100"
+             
 ```

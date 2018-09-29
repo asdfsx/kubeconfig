@@ -9,13 +9,19 @@ import (
 	"net/http"
 )
 
-func CreateHandler(k8sClient kubernetes.Interface, prefix string, clusterCAServer string, clusterCAData []byte, swaggerUIDist string) http.Handler {
+func CreateHandler(k8sClient kubernetes.Interface, prefix string, clusterCAServer string, clusterCAData []byte,
+	tillerNamespace string, tillerRole string, swaggerUIDist string) http.Handler {
 	container := restful.NewContainer()
 
 	nsr := createNameSpacesResource(k8sClient, prefix)
 	container.Add(nsr.WebService())
 
-	kcr := createKubeConfigResource(k8sClient, clusterCAServer, clusterCAData, prefix)
+	kcr := createKubeConfigResource(k8sClient,
+		clusterCAServer,
+		clusterCAData,
+		tillerNamespace,
+		tillerRole,
+		prefix)
 	container.Add(kcr.WebService())
 
 	sar := createServiceAccountResource(k8sClient, prefix)

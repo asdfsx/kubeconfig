@@ -18,6 +18,8 @@ var (
 	swaggerUIDist   string
 	incluster       bool
 	namespacePrefix = "clustar-"
+	tillerRole      = "tiller-user"
+	tillerNamespace = "kube-system"
 )
 
 func init() {
@@ -60,13 +62,25 @@ func main() {
 	if t := os.Getenv("NAMESPACE_PREFIX"); t != "" {
 		namespacePrefix = t
 	}
+	if t := os.Getenv("TILLER_ROLE"); t != "" {
+		tillerRole = t
+	}
+	if t := os.Getenv("TILLER_NAMESPACE"); t != "" {
+		tillerNamespace = t
+	}
 
 	clientSet, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
 		glog.Fatalf("Error building kubeclient: %s", err.Error())
 	}
 
-	handler := restful.CreateHandler(clientSet, namespacePrefix, clusterServer, clusterCAData, swaggerUIDist)
+	handler := restful.CreateHandler(clientSet,
+		namespacePrefix,
+		clusterServer,
+		clusterCAData,
+		tillerNamespace,
+		tillerRole,
+		swaggerUIDist)
 	err = http.ListenAndServe(":8085", handler)
 	if err != nil {
 		glog.Fatalf("Error running http server: %s", err.Error())
