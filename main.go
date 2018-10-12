@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/base64"
 	"flag"
 	"github.com/golang/glog"
 	"github.com/starcloud-ai/kubeconfig/pkg/restful"
@@ -43,21 +42,15 @@ func main() {
 		if err != nil {
 			glog.Fatalf("Error building kubeconfig: %s", err.Error())
 		}
-		clusterServer = os.Getenv("CLUSTER_SERVER")
-		clusterCADataOriginal := os.Getenv("CLUSTER_CA_DATA")
-
-		clusterCAData, err = base64.StdEncoding.DecodeString(clusterCADataOriginal)
-		if err != nil {
-			glog.Fatalf("Error decoding ca-data: %s", err.Error())
-		}
 	} else {
 		cfg, err = clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 		if err != nil {
 			glog.Fatalf("Error building kubeconfig: %s", err.Error())
 		}
-		clusterServer = cfg.Host
-		clusterCAData = cfg.CAData
 	}
+
+	clusterServer = cfg.Host
+	clusterCAData = cfg.CAData
 
 	if t := os.Getenv("NAMESPACE_PREFIX"); t != "" {
 		namespacePrefix = t
