@@ -53,6 +53,55 @@ go build
 NAMESPACE_PREFIX=clustar- ./kubeconfig -kubeconfig=~/.kube/hongkongconfig -swagger-ui-dist=./swagger-ui-dist/
 ```
 
+### 测试rbac
+首先通过swagger-ui创建测试空间`clustar-sample`，测试用户`sample`。获得kubeconfig，并保存到本地。
+
+使用获得到kubeconfig执行下边的命令。修改namespace，看看是否报错，`clustar-sample`之外应该只有只读权限。
+
+```text
+# create pod
+cat <<EOF|kubectl --kubeconfig=./testconfig create -f -
+apiVersion: v1
+kind: Pod
+metadata:
+  name: rbac-test
+  namespace: clustar-sample
+spec:  # specification of the pod's contents
+  containers:
+  - name: rbac-test
+    image: "busybox"
+    command: ["top"]
+    stdin: true
+    tty: true
+EOF
+
+# get pod
+kubectl --kubeconfig=./testconfig get pod --all-namespaces
+
+# delete pod
+kubectl --kubeconfig=./testconfig delete pod rbac-test -n clustar-sample
+
+# create ServiceAccount
+cat <<EOF|kubectl --kubeconfig=./testconfig create -f -
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sample2
+  namespace: clustar-sample
+EOF
+
+# delete ServiceAccount
+cat <<EOF|kubectl --kubeconfig=./testconfig delete -f -
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sample2
+  namespace: clustar-sample
+EOF
+
+```
+
+
 ### 测试arena
 1. 下载arena
 ```bash
