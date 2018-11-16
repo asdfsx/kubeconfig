@@ -43,6 +43,10 @@ func (role *ClusterReadonlyRole) CreateRole() error {
 						Resources: []string{"jobs"},
 						Verbs:     []string{"get", "list", "watch"},},
 					rbacV1.PolicyRule{
+						APIGroups: []string{""},
+						Resources: []string{"services"},
+						Verbs:     []string{"get", "list", "watch"},},
+					rbacV1.PolicyRule{
 						APIGroups: []string{"kubeflow.org"},
 						Resources: []string{"tfjobs"},
 						Verbs:     []string{"get", "list", "watch"},},
