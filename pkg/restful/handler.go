@@ -10,7 +10,7 @@ import (
 )
 
 func CreateHandler(k8sClient kubernetes.Interface, prefix string, clusterCAServer string, clusterCAData []byte,
-	tillerNamespace string, tillerRole string, swaggerUIDist string) http.Handler {
+	tillerNamespace string, tillerRole string, sriovDefaultNamespace string, swaggerUIDist string) http.Handler {
 	container := restful.NewContainer()
 
 	nsr := createNameSpacesResource(k8sClient, prefix)
@@ -21,7 +21,8 @@ func CreateHandler(k8sClient kubernetes.Interface, prefix string, clusterCAServe
 		clusterCAData,
 		tillerNamespace,
 		tillerRole,
-		prefix)
+		prefix,
+		sriovDefaultNamespace)
 	container.Add(kcr.WebService())
 
 	sar := createServiceAccountResource(k8sClient, prefix)

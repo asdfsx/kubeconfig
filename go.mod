@@ -3,6 +3,7 @@ module github.com/starcloud-ai/kubeconfig
 require (
 	github.com/PuerkitoBio/purell v1.1.0 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
+	github.com/containernetworking/cni v0.6.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/go-restful v2.8.0+incompatible
 	github.com/emicklei/go-restful-openapi v1.0.0
@@ -19,12 +20,14 @@ require (
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/gregjones/httpcache v0.0.0-20180305231024-9cad4c3443a7 // indirect
 	github.com/imdario/mergo v0.3.6 // indirect
+	github.com/intel/multus-cni v0.0.0-20181115151813-cbf737b917d0
 	github.com/json-iterator/go v1.1.5
 	github.com/julienschmidt/httprouter v0.0.0-20180715161854-348b672cd90d // indirect
 	github.com/mailru/easyjson v0.0.0-20180823135443-60711f1a8329 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
+	github.com/pkg/errors v0.8.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/spf13/pflag v1.0.2 // indirect
 	github.com/stretchr/testify v1.2.2 // indirect

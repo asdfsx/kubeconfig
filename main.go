@@ -12,13 +12,14 @@ import (
 )
 
 var (
-	masterURL       string
-	kubeconfig      string
-	swaggerUIDist   string
-	incluster       bool
-	namespacePrefix = "clustar-"
-	tillerRole      = "tiller-user"
-	tillerNamespace = "kube-system"
+	masterURL                string
+	kubeconfig               string
+	swaggerUIDist            string
+	incluster                bool
+	namespacePrefix          = "clustar-"
+	tillerRole               = "tiller-user"
+	tillerNamespace          = "kube-system"
+	sriovDefaultNamespace    = "default"
 )
 
 func init() {
@@ -61,6 +62,9 @@ func main() {
 	if t := os.Getenv("TILLER_NAMESPACE"); t != "" {
 		tillerNamespace = t
 	}
+	if t := os.Getenv("SRIOV_DEFAULT_NAMESPACE"); t != "" {
+		sriovDefaultNamespace = t
+	}
 
 	clientSet, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
@@ -73,6 +77,7 @@ func main() {
 		clusterCAData,
 		tillerNamespace,
 		tillerRole,
+		sriovDefaultNamespace,
 		swaggerUIDist)
 	err = http.ListenAndServe(":8085", handler)
 	if err != nil {

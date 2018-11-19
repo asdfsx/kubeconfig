@@ -53,6 +53,11 @@ go build
 NAMESPACE_PREFIX=clustar- ./kubeconfig -kubeconfig=~/.kube/hongkongconfig -swagger-ui-dist=./swagger-ui-dist/
 ```
 
+### 本地测试时使用swagger查看api
+在浏览器中打开 swagger地址: 
+
+`http://localhost:8085/apidocs/?url=http://localhost:8085/apidocs.json`
+
 ### 测试rbac
 首先通过swagger-ui创建测试空间`clustar-sample`，测试用户`sample`。获得kubeconfig，并保存到本地。
 
