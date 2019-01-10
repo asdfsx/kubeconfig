@@ -34,6 +34,9 @@ func CreateHandler(k8sClient kubernetes.Interface, prefix string, clusterCAServe
 	crr := createClusterRoleResource(k8sClient)
 	container.Add(crr.WebService())
 
+	pvr := createPersistVolumeResource(k8sClient, prefix)
+	container.Add(pvr.WebService())
+
 	config := restfulspec.Config{
 		WebServices:                   container.RegisteredWebServices(), // you control what services are visible
 		APIPath:                       "/apidocs.json",
