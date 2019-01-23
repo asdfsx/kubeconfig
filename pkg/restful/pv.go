@@ -69,6 +69,11 @@ func (pvr persistentVolumeResource) createPersistentVolumeClaim(request *restful
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
+	_, err = pvr.k8sClient.CoreV1().PersistentVolumes().Get(action.PvName, metaV1.GetOptions{})
+	if err == nil {
+		response.Write([]byte("{\"status\":\"success\"}"))
+	}
+
 	accessMode := coreV1.PersistentVolumeAccessMode(action.AccessMode)
 	nfs := coreV1.NFSVolumeSource{Server: action.NfsIp, Path: action.NfsPath}
 
