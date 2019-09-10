@@ -326,7 +326,7 @@ func (kcr KubeConfigResource) deleteServiceAccount(request *restful.Request, res
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
-	bindingName = rbac.GenerateRoleBindingName(kcr.tillerRole, kcr.tillerNamespace, nameOfAccount)
+	bindingName = rbac.GenerateRoleBindingName(kcr.tillerRole, nameOfSpace, nameOfAccount)
 	err = kcr.k8sClient.RbacV1().RoleBindings(kcr.tillerNamespace).Delete(bindingName, &metaV1.DeleteOptions{})
 	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
