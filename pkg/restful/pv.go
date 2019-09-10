@@ -1,13 +1,13 @@
 package restful
 
 import (
-	"net/http"
 	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful-openapi"
 	coreV1 "k8s.io/api/core/v1"
-	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"net/http"
 )
 
 type persistentVolumeResource struct {
@@ -65,7 +65,7 @@ func (pvr persistentVolumeResource) createPersistentVolumeClaim(request *restful
 		return
 	}
 	quantity, err := resource.ParseQuantity(action.Storage)
-	if  err != nil {
+	if err != nil {
 		response.WriteError(http.StatusInternalServerError, err)
 		return
 	}
@@ -79,36 +79,36 @@ func (pvr persistentVolumeResource) createPersistentVolumeClaim(request *restful
 
 	persistentVolumeTemp := &coreV1.PersistentVolume{
 		TypeMeta: metaV1.TypeMeta{
-				APIVersion:"v1",
-				Kind:"PersistentVolume",
+			APIVersion: "v1",
+			Kind:       "PersistentVolume",
 		},
 		ObjectMeta: metaV1.ObjectMeta{
-					Name: action.PvName,
+			Name: action.PvName,
 		},
 		Spec: coreV1.PersistentVolumeSpec{
-				AccessModes: []coreV1.PersistentVolumeAccessMode{accessMode},
-				Capacity: coreV1.ResourceList{coreV1.ResourceStorage: quantity},
-				PersistentVolumeSource: coreV1.PersistentVolumeSource{NFS:&nfs},
-				PersistentVolumeReclaimPolicy: "Delete",
-				StorageClassName: action.StorageClass,
+			AccessModes:                   []coreV1.PersistentVolumeAccessMode{accessMode},
+			Capacity:                      coreV1.ResourceList{coreV1.ResourceStorage: quantity},
+			PersistentVolumeSource:        coreV1.PersistentVolumeSource{NFS: &nfs},
+			PersistentVolumeReclaimPolicy: "Delete",
+			StorageClassName:              action.StorageClass,
 		},
 	}
 
 	persistentVolumeClaimTemp := &coreV1.PersistentVolumeClaim{
 		TypeMeta: metaV1.TypeMeta{
-				APIVersion:"v1",
-				Kind:"PersistentVolumeClaim",
-			},
+			APIVersion: "v1",
+			Kind:       "PersistentVolumeClaim",
+		},
 		ObjectMeta: metaV1.ObjectMeta{
-			Name: action.PvcName,
+			Name:      action.PvcName,
 			Namespace: action.NameSpace,
-			},
+		},
 		Spec: coreV1.PersistentVolumeClaimSpec{
-				AccessModes:[]coreV1.PersistentVolumeAccessMode{accessMode},
-				Resources:coreV1.ResourceRequirements{Requests:coreV1.ResourceList{coreV1.ResourceStorage: quantity}},
-				StorageClassName: &action.StorageClass,
-				VolumeName: action.PvName,
-			},
+			AccessModes:      []coreV1.PersistentVolumeAccessMode{accessMode},
+			Resources:        coreV1.ResourceRequirements{Requests: coreV1.ResourceList{coreV1.ResourceStorage: quantity}},
+			StorageClassName: &action.StorageClass,
+			VolumeName:       action.PvName,
+		},
 	}
 
 	persistentVolumeTemp, err = pvr.k8sClient.CoreV1().PersistentVolumes().Create(persistentVolumeTemp)

@@ -10,12 +10,12 @@ import (
 
 const adminRoleNamePattern = "%s:admin"
 
-type NamespaceAdminRole struct{
+type NamespaceAdminRole struct {
 	BaseRole
-	K8sClient    kubernetes.Interface
+	K8sClient kubernetes.Interface
 }
 
-func NewNamespaceAdminRole(namespace string, k8sclient kubernetes.Interface) (role *NamespaceAdminRole){
+func NewNamespaceAdminRole(namespace string, k8sclient kubernetes.Interface) (role *NamespaceAdminRole) {
 	role = &NamespaceAdminRole{}
 	role.Namespace = namespace
 	role.RoleName = generateAdminRoleName(namespace)
@@ -40,8 +40,7 @@ func (role *NamespaceAdminRole) CreateRole() error {
 					rbacV1.PolicyRule{
 						APIGroups: []string{"*"},
 						Resources: []string{"*"},
-						Verbs:     []string{"*"},},
-
+						Verbs:     []string{"*"}},
 				)
 				_, err := role.K8sClient.RbacV1().Roles(role.Namespace).Create(roleTmp)
 				if err != nil {
@@ -57,7 +56,7 @@ func (role *NamespaceAdminRole) CreateRole() error {
 	return nil
 }
 
-func(role *NamespaceAdminRole) CreateRoleBinding(accountNamespace, accountName string) error {
+func (role *NamespaceAdminRole) CreateRoleBinding(accountNamespace, accountName string) error {
 	bindingName := GenerateRoleBindingName(role.RoleName, accountNamespace, accountName)
 	_, err := role.K8sClient.RbacV1().RoleBindings(role.Namespace).Get(bindingName, metaV1.GetOptions{})
 	if err != nil {

@@ -12,14 +12,14 @@ import (
 )
 
 var (
-	masterURL                string
-	kubeconfig               string
-	swaggerUIDist            string
-	incluster                bool
-	namespacePrefix          = "clustar-"
-	tillerRole               = "tiller-user"
-	tillerNamespace          = "kube-system"
-	sriovDefaultNamespace    = "default"
+	masterURL             string
+	kubeconfig            string
+	swaggerUIDist         string
+	incluster             bool
+	namespacePrefix       = "clustar-"
+	tillerRole            = "tiller-user"
+	tillerNamespace       = "kube-system"
+	sriovDefaultNamespace = "default"
 )
 
 func init() {

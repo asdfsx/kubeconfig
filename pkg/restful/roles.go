@@ -5,21 +5,21 @@ import (
 	"fmt"
 	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful-openapi"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/kubernetes/pkg/apis/rbac"
 	"net/http"
 	"strings"
 )
 
 type RolesResource struct {
-	k8sClient               kubernetes.Interface
+	k8sClient                kubernetes.Interface
 	selfDefineResourcePrefix string
 }
 
 func createRoleResource(k8sClient kubernetes.Interface, prefix string) (resource *RolesResource) {
 	resource = &RolesResource{
-		k8sClient:               k8sClient,
+		k8sClient:                k8sClient,
 		selfDefineResourcePrefix: prefix,
 	}
 	return
@@ -48,7 +48,7 @@ func (rr RolesResource) WebService() *restful.WebService {
 		Param(ws.PathParameter("namespace", "identifier of the namespace").DataType("string").DefaultValue("default")).
 		Param(ws.PathParameter("role", "identifier of the role").DataType("string").DefaultValue("default")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(rbac.Role{}). // on the response
+		Writes(rbacv1.Role{}). // on the response
 		Returns(200, "OK", nil).
 		Returns(404, "Not Found", nil))
 

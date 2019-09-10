@@ -14,13 +14,13 @@ import (
 )
 
 type NameSpacesResource struct {
-	k8sClient               kubernetes.Interface
+	k8sClient                kubernetes.Interface
 	selfDefineResourcePrefix string
 }
 
 func createNameSpacesResource(k8sclient kubernetes.Interface, prefix string) (resource *NameSpacesResource) {
 	resource = &NameSpacesResource{
-		k8sClient:               k8sclient,
+		k8sClient:                k8sclient,
 		selfDefineResourcePrefix: prefix,
 	}
 	return

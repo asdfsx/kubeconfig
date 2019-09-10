@@ -2,7 +2,7 @@ PACKAGE = github.com/starcloud-ai/kubeconfig
 COMMIT_HASH = `git rev-parse --short HEAD 2>/dev/null`
 BUILD_DATE = `date +%FT%T%z`
 BUILD_IMAGE = golang:1.11-alpine
-IMAGE = clustarai/kubeauth:v0.0.2
+IMAGE = clustarai/kubeauth:v0.0.3
 WORKDIR = /go/src/${PACKAGE}
 TARGET = kubeconfig
 

@@ -9,12 +9,12 @@ import (
 
 const ReadOnlyRole = "cluster-readonly"
 
-type ClusterReadonlyRole struct{
+type ClusterReadonlyRole struct {
 	BaseRole
-	K8sClient    kubernetes.Interface
+	K8sClient kubernetes.Interface
 }
 
-func NewClusterReadonlyRoleRole(namespace, rolename string, k8sclient kubernetes.Interface) (role *ClusterReadonlyRole){
+func NewClusterReadonlyRoleRole(namespace, rolename string, k8sclient kubernetes.Interface) (role *ClusterReadonlyRole) {
 	role = &ClusterReadonlyRole{}
 	role.Namespace = namespace
 	role.RoleName = rolename
@@ -37,19 +37,19 @@ func (role *ClusterReadonlyRole) CreateRole() error {
 					rbacV1.PolicyRule{
 						APIGroups: []string{""},
 						Resources: []string{"pods"},
-						Verbs:     []string{"get", "list", "watch"},},
+						Verbs:     []string{"get", "list", "watch"}},
 					rbacV1.PolicyRule{
 						APIGroups: []string{"batch"},
 						Resources: []string{"jobs"},
-						Verbs:     []string{"get", "list", "watch"},},
+						Verbs:     []string{"get", "list", "watch"}},
 					rbacV1.PolicyRule{
 						APIGroups: []string{""},
 						Resources: []string{"services"},
-						Verbs:     []string{"get", "list", "watch"},},
+						Verbs:     []string{"get", "list", "watch"}},
 					rbacV1.PolicyRule{
 						APIGroups: []string{"kubeflow.org"},
 						Resources: []string{"tfjobs"},
-						Verbs:     []string{"get", "list", "watch"},},
+						Verbs:     []string{"get", "list", "watch"}},
 				)
 				_, err := role.K8sClient.RbacV1().ClusterRoles().Create(roleTmp)
 				if err != nil {
@@ -65,7 +65,7 @@ func (role *ClusterReadonlyRole) CreateRole() error {
 	return nil
 }
 
-func(role *ClusterReadonlyRole) CreateRoleBinding(accountNamespace, accountName string) error {
+func (role *ClusterReadonlyRole) CreateRoleBinding(accountNamespace, accountName string) error {
 	bindingName := GenerateRoleBindingName(role.RoleName, accountNamespace, accountName)
 	_, err := role.K8sClient.RbacV1().ClusterRoleBindings().Get(bindingName, metaV1.GetOptions{})
 	if err != nil {

@@ -1,6 +1,7 @@
 package restful
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/emicklei/go-restful"
@@ -16,7 +17,6 @@ import (
 	k8sCliApi "k8s.io/client-go/tools/clientcmd/api/v1"
 	"net/http"
 	"strings"
-	"encoding/json"
 )
 
 type KubeConfigResource struct {
@@ -98,7 +98,7 @@ func (kcr KubeConfigResource) WebService() *restful.WebService {
 func (kcr KubeConfigResource) getDefaultMultusConfig() (*NetworkAttachmentDefinitionList, error) {
 	rawPath := fmt.Sprintf("/apis/k8s.cni.cncf.io/v1/namespaces/%s/network-attachment-definitions", kcr.sriovDefaultNamespace)
 	netData, err := kcr.GetRawWithPath(rawPath)
-    if err != nil {
+	if err != nil {
 		return nil, err
 	}
 	customResources := &NetworkAttachmentDefinitionList{}
@@ -109,7 +109,7 @@ func (kcr KubeConfigResource) getDefaultMultusConfig() (*NetworkAttachmentDefini
 }
 
 func (kcr KubeConfigResource) addMultusConfig(nameOfSpace string, configs *NetworkAttachmentDefinitionList) error {
-	for _, item := range(configs.Items){
+	for _, item := range configs.Items {
 		rawPath := fmt.Sprintf("/apis/%s/namespaces/%s/network-attachment-definitions", item.APIVersion, nameOfSpace)
 
 		definition := &types.NetworkAttachmentDefinition{}
@@ -121,9 +121,8 @@ func (kcr KubeConfigResource) addMultusConfig(nameOfSpace string, configs *Netwo
 
 		body, err := json.Marshal(definition)
 
-
 		_, err = kcr.PostRawWithPath(rawPath, body)
-		if err != nil{
+		if err != nil {
 			fmt.Println(err)
 			return err
 		}
@@ -241,12 +240,12 @@ func (kcr KubeConfigResource) checkNamespace(action *serviceAccountAction) (int,
 
 func (kcr KubeConfigResource) checkSriov(action *serviceAccountAction) (int, error) {
 	configs, err := kcr.getDefaultMultusConfig()
-	if err != nil{
+	if err != nil {
 		return http.StatusInternalServerError, err
 	}
 
 	err = kcr.addMultusConfig(action.NameSpace, configs)
-	if err != nil{
+	if err != nil {
 		return http.StatusInternalServerError, err
 	}
 	return http.StatusOK, nil
@@ -340,7 +339,6 @@ func (kcr KubeConfigResource) deleteServiceAccount(request *restful.Request, res
 	}
 	response.Write([]byte("{\"status\":\"success\"}"))
 }
-
 
 func (kcr KubeConfigResource) GetRawWithPath(path string) ([]byte, error) {
 	return kcr.k8sClient.ExtensionsV1beta1().RESTClient().Get().AbsPath(path).DoRaw()

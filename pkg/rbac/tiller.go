@@ -7,10 +7,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-
-type TillerRole struct{
+type TillerRole struct {
 	BaseRole
-	K8sClient    kubernetes.Interface
+	K8sClient kubernetes.Interface
 }
 
 func NewTillerRole(namespace, rolename string, k8sclient kubernetes.Interface) (role *TillerRole) {
@@ -27,7 +26,7 @@ func (role *TillerRole) CreateRole() error {
 	return err
 }
 
-func(role *TillerRole) CreateRoleBinding(accountNamespace, accountName string) error {
+func (role *TillerRole) CreateRoleBinding(accountNamespace, accountName string) error {
 	bindingName := GenerateRoleBindingName(role.RoleName, accountNamespace, accountName)
 	_, err := role.K8sClient.RbacV1().RoleBindings(role.Namespace).Get(bindingName, metaV1.GetOptions{})
 	if err != nil {

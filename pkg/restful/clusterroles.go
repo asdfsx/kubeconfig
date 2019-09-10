@@ -3,19 +3,19 @@ package restful
 import (
 	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful-openapi"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/kubernetes/pkg/apis/rbac"
 	"net/http"
 )
 
 type ClusterRoleResource struct {
-	k8sClient               kubernetes.Interface
+	k8sClient kubernetes.Interface
 }
 
 func createClusterRoleResource(k8sClient kubernetes.Interface) (resource *ClusterRoleResource) {
 	resource = &ClusterRoleResource{
-		k8sClient:               k8sClient,
+		k8sClient: k8sClient,
 	}
 	return
 }
@@ -41,7 +41,7 @@ func (crr ClusterRoleResource) WebService() *restful.WebService {
 		Doc("find specified cluster role").
 		Param(ws.PathParameter("clusterRole", "identifier of the role").DataType("string").DefaultValue("default")).
 		Metadata(restfulspec.KeyOpenAPITags, tags).
-		Writes(rbac.ClusterRole{}). // on the response
+		Writes(rbacv1.ClusterRole{}). // on the response
 		Returns(200, "OK", nil).
 		Returns(404, "Not Found", nil))
 
